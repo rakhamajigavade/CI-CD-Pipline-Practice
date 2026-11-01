@@ -1,11 +1,9 @@
-
 pipeline {
     agent {
         label 'linux'
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 echo 'Source code checkout'
@@ -36,13 +34,34 @@ pipeline {
                 sh 'docker build -t devops-cicd-app:latest .'
             }
         }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_TOKEN'
+                )]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        trap 'docker logout >/dev/null 2>&1 || true' EXIT
+
+                        docker tag devops-cicd-app:latest "$DOCKERHUB_USER/devops-cicd-app:${BUILD_NUMBER}"
+                        docker tag devops-cicd-app:latest "$DOCKERHUB_USER/devops-cicd-app:latest"
+
+                        docker push "$DOCKERHUB_USER/devops-cicd-app:${BUILD_NUMBER}"
+                        docker push "$DOCKERHUB_USER/devops-cicd-app:latest"
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
             echo 'CI Pipeline completed successfully!'
         }
-
         failure {
             echo 'CI Pipeline failed. Check the console output.'
         }
