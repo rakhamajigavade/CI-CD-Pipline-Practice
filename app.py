@@ -8,7 +8,7 @@ APP_VERSION = "1.0.0"
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Welcome to DevOps CI/CD Project For You !",
+        "message": "Version 2 - Automatic Deployment Successful!!",
         "application": "Jenkins CI/CD Demo",
         "version": APP_VERSION,
         "status": "Running Successfully"
