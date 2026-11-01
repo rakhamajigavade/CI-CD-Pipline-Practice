@@ -6,7 +6,7 @@ def test_home():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json["message"] == "Welcome to DevOps CI/CD Project!"
+    assert response.json["message"] == "Welcome to DevOps CI/CD Project For You !"
     assert response.json["status"] == "Running Successfully"
 
 
