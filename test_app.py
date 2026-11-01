@@ -6,7 +6,7 @@ def test_home():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json["message"] == "Version 2 - Automatic Deployment Successful!"
+    assert response.json["message"] == "Version 2 - Automatic Deployment Successful !"
     assert response.json["status"] == "Running Successfully"
 
 
