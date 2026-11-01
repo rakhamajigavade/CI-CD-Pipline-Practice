@@ -1,3 +1,4 @@
+
 pipeline {
     agent {
         label 'linux'
@@ -15,14 +16,17 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing Python dependencies'
-                sh 'python -m pip install -r requirements.txt'
+                sh '''
+                    python3 -m venv venv
+                    venv/bin/pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
                 echo 'Running application tests'
-                sh 'python -m pytest -v'
+                sh 'venv/bin/python -m pytest -v'
             }
         }
 
