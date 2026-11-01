@@ -1,6 +1,12 @@
+
 pipeline {
     agent {
         label 'linux'
+    }
+
+    environment {
+        EC2_HOST = '13.53.38.195'
+        EC2_USER = 'ubuntu'
     }
 
     stages {
@@ -56,14 +62,72 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to EC2') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    ),
+                    sshUserPrivateKey(
+                        credentialsId: 'ec2-ssh-key',
+                        keyFileVariable: 'EC2_KEY'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        DOCKER_IMAGE="$DOCKERHUB_USER/devops-cicd-app:${BUILD_NUMBER}"
+
+                        ssh -o StrictHostKeyChecking=no \
+                            -i "$EC2_KEY" \
+                            "$EC2_USER@$EC2_HOST" \
+                            "DOCKER_IMAGE='$DOCKER_IMAGE' bash -s" <<'REMOTE'
+
+                        set -e
+
+                        echo "Pulling latest application image..."
+                        docker pull "$DOCKER_IMAGE"
+
+                        echo "Removing previous project container..."
+                        docker rm -f devops-cicd-app || true
+
+                        echo "Starting new application container..."
+                        docker run -d \
+                            --name devops-cicd-app \
+                            --restart unless-stopped \
+                            -p 80:5000 \
+                            "$DOCKER_IMAGE"
+
+                        echo "Checking application health..."
+
+                        for i in $(seq 1 10); do
+                            if curl -fsS http://localhost/health; then
+                                echo "Deployment successful!"
+                                exit 0
+                            fi
+                            sleep 3
+                        done
+
+                        echo "Health check failed!"
+                        exit 1
+
+                        REMOTE
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CI/CD Pipeline completed successfully!'
         }
+
         failure {
-            echo 'CI Pipeline failed. Check the console output.'
+            echo 'CI/CD Pipeline failed. Check the console output.'
         }
     }
 }
